@@ -25,7 +25,7 @@
 
 				<div class="page-header position-relative">
 					<h1>
-						党建后台首页 <small><i class="icon-double-angle-right"></i> </small>
+						后台首页 <small><i class="icon-double-angle-right"></i> </small>
 					</h1>
 				</div>
 			</div>
