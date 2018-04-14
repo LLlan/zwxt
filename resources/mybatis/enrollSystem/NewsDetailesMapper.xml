@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="newsDetailesMapper">
+
+	<!--  
+		获取所有的文件信息列表
+	-->
+	<select id="getListPage" parameterType="Map" resultType="pd">
+		SELECT * from (
+		SELECT
+			snd.FileID,
+			snd.SectionID,
+			snd.FileName,
+			snd.PhotoID,
+			snd.FileClick,
+			snd.FileComment,
+			snd.FileLike,
+			snd.FileTime,
+			snd.FileContent,
+			snd.FileAuthor,
+			snd.FileType,
+			snd.FileHot,
+			snm.SectionName,
+			sna.FileTypeName,
+			sna.FileTypePathID,
+			t1.FileTypeName AS FileTypeNames,
+			ROW_NUMBER () OVER (ORDER BY snd.FileID DESC) AS RowNumber
+		FROM
+			(
+				SELECT
+					*
+				FROM
+					[dbo].[File] AS a
+				WHERE
+					1 = 1
+			) AS snd
+		LEFT JOIN SECTION snm ON snm.SectionID = snd.SectionID
+		LEFT JOIN FileType sna ON sna.FileTypeID = snd.FileType
+		LEFT JOIN FileType t1 ON sna.FileTypePathID = t1.FileTypeID
+		<where>
+			<if test="searchNames!=null and searchNames!='' and searchName!=null and searchName!=''">
+				(snd.FileName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchName}%') 
+			</if>
+			<if test="searchNames!=null and searchNames!=''">
+			  AND (snd.FileName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchNames}%')
+			</if>
+			<if test="searchName!=null and searchName!=''">
+			  AND t1.FileTypeName LIKE '%${searchName}%' 
+			</if>
+		</where>
+		) as tmp where RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			[dbo].[File] snd
+		LEFT JOIN Section snm ON snm.SectionID = snd.SectionID
+		LEFT JOIN FileType sna ON sna.FileTypeID = snd.FileType
+		LEFT JOIN FileType t1 ON sna.FileTypePathID = t1.FileTypeID
+		<where>
+			<if test="searchNames!=null and searchNames!='' and searchName!=null and searchName!=''">
+				(snd.FileName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchName}%') 
+			</if>
+			<if test="searchNames!=null and searchNames!=''">
+			  AND (snd.FileName LIKE '%${searchNames}%' OR t1.FileTypeName LIKE '%${searchNames}%')
+			</if>
+			<if test="searchName!=null and searchName!=''">
+			  AND t1.FileTypeName LIKE '%${searchName}%' 
+			</if>
+		</where>
+	</select>
+	
+	
+	<!-- 分页总数  父级-->
+	<select id="getCount_P" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			[dbo].[FileType]
+		where 1=1 AND FileTypePathID =0
+	</select>
+	
+	<!-- 查询有子的父类 -->
+	<select id="getAllListParents" parameterType="pd" resultType="pd">
+		SELECT DISTINCT
+			t1.FileTypeID,
+			t1.FileTypeName,
+			t1.FileTypePathID,
+			t1.FileTypeHot
+		FROM
+			FileType t1,
+			FileType t2
+		WHERE
+			t1.FileTypeID = t2.FileTypePathID
+		AND t1.FileTypePathID = 0
+	</select>
+	
+	<!--  
+		获取所有的信息
+	-->
+	<select id="getFileTypeListAll" parameterType="pd" resultType="pd">
+		SELECT
+			t1.FileTypeID,
+			t1.FileTypeName,
+			t1.FileTypePathID,
+			t1.FileTypeHot
+		FROM
+			FileType t1
+		WHERE
+			t1.FileTypePathID = #{FileTypePathsID}
+	</select>
+	<!--  
+		添加文件信息
+	-->
+	<select id="insertFile" resultType="pd">
+		INSERT INTO [dbo].[File](
+			SectionID,
+			FileName,
+			PhotoID,
+			FileTime,
+			FileContent,
+			FileAuthor,
+			FileType,
+			FileHot
+		)VALUES(
+			#{SectionID},
+			#{FileName},
+			#{PhotoID},
+			#{FileTime},
+			#{FileContent},
+			#{FileAuthor},
+			#{FileType},
+			#{FileHot}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!--  
+		添加图片信息
+	-->
+	<select id="insertPhoto" resultType="pd">
+		INSERT INTO Photo(
+			PhotoName,
+			FileID,
+			SectionID,
+			PhotoPath,
+			PhotoDescription,
+			PhotoURL,
+			PhotoSign,
+			PhotoTypeID
+		)VALUES(
+			#{PhotoName},
+			#{FileID},
+			#{SectionID},
+			#{PhotoPath},
+			#{PhotoDescription},
+			#{PhotoURL},
+			#{PhotoSign},
+			#{PhotoTypeID}
+		)
+		;select @@IDENTITY
+	</select>
+
+	<!--  
+		根据主键ID获取对象信息
+	-->
+	<select id="getDateById" parameterType="pd" resultType="pd">
+		SELECT
+			snd.FileID,
+			snd.SectionID,
+			snd.FileName,
+			snd.PhotoID,
+			snd.FileClick,
+			snd.FileComment,
+			snd.FileLike,
+			snd.FileTime,
+			snd.FileContent,
+			snd.FileAuthor,
+			snd.FileType,
+			snd.FileHot,
+			<!-- t1.PhotoName,
+			t1.PhotoID PhotoIDS,
+			t1.PhotoPath,
+			t1.PhotoSign,
+			t1.PhotoTypeID,
+			t1.PhotoURL,
+			t1.PhotoDescription,
+			t2.PhotoTypeName, -->
+			t3.FileTypeID,
+			t3.FileTypeName,
+			t3.FileTypePathID,
+			t4.FileTypeName AS FileTypeNames,
+			t4.FileTypeID AS FileTypeIDs,
+			t4.FileTypePathID AS FileTypePathIDs
+		FROM
+			[dbo].[File] snd
+		<!-- LEFT JOIN Photo t1 ON snd.FileID = t1.FileID
+		LEFT JOIN PhotoType t2 ON t1.PhotoTypeID = t2.PhotoTypeID -->
+		LEFT JOIN FileType t3 ON t3.FileTypeID = snd.FileType
+		LEFT JOIN FileType t4 ON t3.FileTypePathID = t4.FileTypeID
+		<where>
+			<if test="FileID!=null and FileID!=''">
+				snd.FileID=#{FileID}
+			</if>
+			<if test="SectionID!=null and SectionID!=''">
+				snd.SectionID=#{SectionID}
+			</if>
+		</where>
+		
+	</select>
+	
+	<!--  
+		根据主键ID获取对象信息
+	-->
+	<select id="getDateByPhotoId" parameterType="pd" resultType="pd">
+		SELECT
+			t1.PhotoID,
+			t1.PhotoName,
+			t1.FileID,
+			t1.PhotoPath,
+			t1.PhotoSign,
+			t1.PhotoTypeID,
+			t1.PhotoURL,
+			t1.SectionID,
+			t1.PhotoDescription
+		FROM
+			Photo t1
+		<where>
+			<if test="PhotoID!=null and PhotoID!=''">
+				t1.PhotoID=#{PhotoID}
+			</if>
+		</where>
+	</select>
+	
+	<select id="getDateByPhotoIds" parameterType="pd" resultType="pd">
+		SELECT
+			t1.PhotoID,
+			t1.PhotoName,
+			t1.FileID,
+			t1.PhotoPath,
+			t1.PhotoSign,
+			t1.PhotoTypeID,
+			t1.PhotoURL,
+			t1.SectionID,
+			t1.PhotoDescription
+		FROM
+			Photo t1
+		where
+			t1.FileID=#{FileID}
+	</select>
+	
+	<!--  
+		修改图片指定信息
+	-->
+	<update id="updatePhoto" parameterType="pd">
+		update Photo
+		set
+			PhotoName=#{PhotoName},
+			FileID=#{FileID},
+			SectionID=#{SectionID},
+			PhotoPath=#{PhotoPath},
+			PhotoDescription=#{PhotoDescription},
+			PhotoURL=#{PhotoURL},
+			PhotoSign=#{PhotoSign},
+			PhotoTypeID=#{PhotoTypeID}
+		where 
+			PhotoID=#{PhotoID}
+	</update>
+	
+	<!--  
+		修改指定文件信息
+	-->
+	<update id="updateFile" parameterType="pd">
+		update [dbo].[File]
+		set
+			FileName=#{FileName},
+			FileContent=#{FileContent},
+			SectionID=#{SectionID},
+			FileType=#{FileType},
+			FileAuthor=#{FileAuthor},
+			FileHot=#{FileHot}
+		where 
+			FileID=#{FileID}
+	</update>
+	
+	<!--  
+		删除操作
+	-->
+	<delete id="deleteFile" parameterType="pd">
+		delete 
+		from [dbo].[File]
+		where FileID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	<!--  
+		删除图片操作
+	-->
+	<delete id="deletePhoto" parameterType="pd">
+		delete 
+		from Photo
+		where FileID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	<!--  
+		删除图片操作
+	-->
+	<delete id="deletePhotos" parameterType="pd">
+		delete from Photo where PhotoID = #{PhotoID}
+	</delete>
+	<!-- 删除图片路径-->
+	<update id="deleteImgPath" parameterType="pd">
+		update Photo
+		set 
+			PhotoPath = null
+		where 
+			PhotoID=#{PhotoID}
+	</update>
+	
+	<!--  
+		获取指定id集合的数据
+	-->
+	<!-- <select id="getListByIds" parameterType="pd" resultType="pd">
+		select 
+			icon_path
+		from sys_news_module
+		where news_module_id in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select> -->
+	
+	<!--  
+		获取指定条件下的所有主图信息
+	-->
+	<!-- <select id="getListByCondition" parameterType="pd" resultType="pd">
+		select 
+			icon_path,
+			news_module_name
+		from sys_news_module
+		where 
+			status=#{status}
+	</select> -->
+	
+	
+</mapper>

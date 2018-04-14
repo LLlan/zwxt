@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="partyOrganizationMapper">
+	
+	<!-- 党组织机构列表  -->
+	<select id="PartyOrganizationListPage" parameterType="Map" resultType="pd" useCache="false">
+			select
+				POID,
+				POFatherID,
+				POName,
+				POPhone,
+				POAddress,
+				POType
+			 from
+			 	(
+					SELECT
+						*, ROW_NUMBER () OVER (ORDER BY a.POID DESC) AS RowNumber
+					FROM
+						[dbo].[PartyOrganization] AS a
+					WHERE
+						1 = 1
+						AND POFatherID ='0'
+				) AS t1
+			WHERE
+				RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}
+			 <if test="searchName!=null and searchName!=''">
+				and(t1.POName LIKE '%${searchName}%')
+			</if>
+	</select> 
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			[dbo].[PartyOrganization]
+		where 1=1
+		AND POFatherID ='0'
+	</select>
+	
+	<!-- 党组织机构码表 -->
+	<select id="AllPartyOrganizationList" parameterType="pd" resultType="pd" useCache="false">
+		SELECT
+			POID,
+			POFatherID,
+			POName,
+			POPhone,
+			POAddress,
+			POType
+		FROM
+			[dbo].[PartyOrganization]
+		WHERE
+			1 = 1
+		ORDER BY POID DESC
+	</select>
+	
+	<!-- 执行保存党组织机构信息-->
+	<select id="savepartyOrganization" parameterType="pd" resultType="pd">
+		insert into [dbo].[PartyOrganization](
+			POFatherID,
+			POName,
+			POPhone,
+			POAddress,
+			POType
+		)values(
+			#{POFatherID},
+			#{POName},
+			#{POPhone},
+			#{POAddress},
+			#{POType}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 封装对象返回一个集合  -->
+	<resultMap type="PartyOrganizationMenu" id="menuResultMap">
+		<id column="POID" property="POID"/>
+		<result column="POFatherID" property="POFatherID"/>
+		<result column="POName" property="POName"/>
+		<result column="POPhone" property="POPhone"/>
+		<result column="POAddress" property="POAddress"/>
+		<result column="POType" property="POType"/>
+	</resultMap>
+	
+	<!-- 获取二级支部 -->
+	<select id="listSubMenuByParentId" parameterType="String" resultMap="menuResultMap">
+		SELECT
+			POID,
+			POFatherID,
+			POName,
+			POPhone,
+			POAddress,
+			POType
+		FROM
+			[dbo].[PartyOrganization]
+		WHERE
+			1 = 1
+		AND POFatherID = #{POFatherID}
+		ORDER BY POID DESC
+	</select>
+	
+	<!-- 根据id查询一条信息 -->
+	<select id="getDataByPartyOrganizationid" parameterType="pd" resultType="pd">
+		select
+			POID,
+			POFatherID,
+			POName,
+			POPhone,
+			POAddress,
+			POType
+		from 
+			[dbo].[PartyOrganization]
+		where 
+			POID = #{POID}
+	</select>
+	
+	<!-- 更新一条信息 -->
+	<update id="updatePartyOrganization" parameterType="pd">
+		update [dbo].[PartyOrganization]
+			set 
+				POFatherID =#{POFatherID},
+				POName =#{POName},
+				POPhone =#{POPhone},
+				POAddress =#{POAddress},
+				POType =#{POType}
+			where POID = #{POID}
+	</update>
+	
+	<!-- 执行删除一条信息 -->
+	<delete id="deletePartyOrganization" parameterType="pd">
+		delete from [dbo].[PartyOrganization] 
+		where 
+			POID =#{POID}
+	</delete>
+	
+	<!-- 执行删除一条信息 -->
+	<delete id="deletePOFatherID" parameterType="pd">
+		delete from [dbo].[PartyOrganization] 
+		where 
+			POFatherID =#{POID}
+	</delete>
+	
+	<!-- 根据顶级id查询是否存在二级信息 -->
+	<select id="getPartyOrganization" parameterType="pd" resultType="pd">
+		SELECT
+			POID,
+			POFatherID,
+			POName,
+			POPhone,
+			POAddress,
+			POType
+		from 
+			[dbo].[PartyOrganization]
+		where 
+			POFatherID = #{POID}
+	</select>
+	
+</mapper>

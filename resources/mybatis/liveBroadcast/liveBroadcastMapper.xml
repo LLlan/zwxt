@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="liveBroadcastMapper">
+							
+	<!-- 课程系统分页列表 -->	 
+	<select id="LiveBroadcastlistPage" parameterType="Map" resultType="pd" useCache="false">
+		SELECT
+			t1.LiveBroadcastID,
+			t1.LiveBroadcastName,
+			t1.LiveBroadcastPhotoUrl,
+			t1.LiveBroadcastType,
+			IFNULL(t1.LiveBroadcastLike, 0) LiveBroadcastLike,
+			t1.LiveBroadcastContent,
+			t1.LiveBroadcastVideoUrl,
+			t1.LiveBroadcastBeginTime,
+			t1.LiveBroadcastEndTime,
+			t1.LiveBroadcastLength,
+			t1.LiveBroadcastTime
+		FROM
+			LiveBroadcast t1
+		<where>
+			1=1
+			<if test="pd.searchName!=null and pd.searchName!='' and pd.searchNames!=null and pd.searchNames!=''">
+			 	AND ( t1.LiveBroadcastName LIKE '%${pd.searchName}%' OR t1.LiveBroadcastType LIKE '%${pd.searchNames}%')
+			</if>
+			<if test="pd.searchName!=null and pd.searchName!=''">
+				AND ( t1.LiveBroadcastName LIKE '%${pd.searchName}%')
+			</if>
+			<if test="pd.searchNames!=null and pd.searchNames!=''">
+			  	AND (t1.LiveBroadcastType LIKE '%${pd.searchNames}%')
+			</if>
+		</where>
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCountLiveBroadcast" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			LiveBroadcast t1
+		where 1=1
+		<if test="searchName!=null and searchName!='' and searchNames!=null and searchNames!=''">
+		  AND ( t1.LiveBroadcastName LIKE '%${searchName}%' OR t1.LiveBroadcastType LIKE '%${searchNames}%')
+		</if>
+		<if test="searchName!=null and searchName!=''">
+			AND ( t1.LiveBroadcastName LIKE '%${searchName}%')
+		</if>
+		<if test="searchNames!=null and searchNames!=''">
+		   AND	(t1.LiveBroadcastType LIKE '%${searchNames}%')
+		</if>
+	</select>
+
+	<!-- 执行新增 -->
+	<select id="saveliveBroadcast" resultType="pd">
+		INSERT INTO LiveBroadcast(
+			LiveBroadcastID,
+			LiveBroadcastName,
+			LiveBroadcastPhotoUrl,
+			LiveBroadcastType,
+			LiveBroadcastLike,
+			LiveBroadcastContent,
+			LiveBroadcastVideoUrl,
+			LiveBroadcastBeginTime,
+			LiveBroadcastEndTime,
+			LiveBroadcastLength,
+			LiveBroadcastTime,
+			Hot
+		)VALUES(
+			UUID(),
+			#{LiveBroadcastName},
+			#{LiveBroadcastPhotoUrl},
+			#{LiveBroadcastType},
+			#{LiveBroadcastLike},
+			#{LiveBroadcastContent},
+			#{LiveBroadcastVideoUrl},
+			#{LiveBroadcastBeginTime},
+			#{LiveBroadcastEndTime},
+			right(#{LiveBroadcastLength},200),
+			#{LiveBroadcastTime},
+			#{Hot}
+		)
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByIDLiveBroadcast" parameterType="pd" resultType="pd">
+			select 
+				t1.LiveBroadcastID,
+				t1.LiveBroadcastName,
+				t1.LiveBroadcastPhotoUrl,
+				t1.LiveBroadcastType,
+				IFNULL(t1.LiveBroadcastLike, 0) LiveBroadcastLike,
+				t1.LiveBroadcastContent,
+				t1.LiveBroadcastVideoUrl,
+				t1.LiveBroadcastBeginTime,
+				t1.LiveBroadcastEndTime,
+				t1.LiveBroadcastLength,
+				t1.LiveBroadcastTime,
+				t1.Hot
+		     from 
+		     	LiveBroadcast t1
+		     where t1.LiveBroadcastID = #{LiveBroadcastID}
+	</select>
+	
+	<!-- 根据id执行修改一条信息 -->
+	<update id="updateLiveBroadcast" parameterType="pd">
+		update 
+			LiveBroadcast
+		set 
+			LiveBroadcastName = #{LiveBroadcastName},
+			LiveBroadcastPhotoUrl = #{LiveBroadcastPhotoUrl},
+			LiveBroadcastType = #{LiveBroadcastType},
+			LiveBroadcastContent = #{LiveBroadcastContent},
+			LiveBroadcastVideoUrl = #{LiveBroadcastVideoUrl},
+			LiveBroadcastBeginTime = #{LiveBroadcastBeginTime},
+			LiveBroadcastEndTime = #{LiveBroadcastEndTime},
+			LiveBroadcastLength = CONVERT(varchar(100), #{LiveBroadcastLength}, 0),
+			LiveBroadcastTime = #{LiveBroadcastTime},
+			Hot = #{Hot}
+		where 
+			LiveBroadcastID = #{LiveBroadcastID}
+	</update>
+	
+	<!-- 执行删除-->
+	<delete id="deleteLiveBroadcast" parameterType="pd">
+		delete 
+		from LiveBroadcast
+		where 
+		LiveBroadcastID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+			<!-- 观看直播部分  -->
+					
+	<!-- 观看直播分页列表 -->	 
+	<select id="LBLearnListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.PMID,
+			t1.LiveBroadcastID,
+			t1.LBLearnLength,
+			t1.LBLearnTime,
+			t2.PMName,
+			t3.LiveBroadcastName
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.PMID DESC) AS RowNumber
+				FROM
+					LBLearn AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN LiveBroadcast t3 ON t1.LiveBroadcastID = t3.LiveBroadcastID
+		WHERE
+			t1.LiveBroadcastID = #{LiveBroadcastID} AND
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t2.PMName LIKE '%${searchName}%' OR t3.LiveBroadcastName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 观看直播分页总数 -->
+	<select id="getCountLBLearn" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			LBLearn
+		where 1=1 AND LiveBroadcastID = #{LiveBroadcastID}
+	</select>
+	
+</mapper>

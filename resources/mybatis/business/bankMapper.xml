@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="bankMapper">
+	
+	<!-- 党建联盟链接列表 -->
+	<select id="BankListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.PBLProvinceID,
+			t1.PBLProvinceName
+			<!-- t2.PBLCityName -->
+		 from 
+	 		(
+			SELECT
+				*, ROW_NUMBER () OVER (ORDER BY a.PBLProvinceID DESC) AS RowNumber
+			FROM
+				PBLProvince AS a
+			WHERE
+				1 = 1
+			) AS t1
+		<!--  LEFT JOIN PBLCity t2  ON t2.PBLProvinceID = t1.PBLProvinceID
+		 LEFT JOIN FileType sna ON sna.FileTypeID = snd.FileType -->
+		WHERE
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.PBLProvinceName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 党建联盟链接列表 -->
+	<select id="AllParentMenuList" parameterType="pd" resultType="pd" useCache="false">
+		select
+			t1.PBLProvinceID,
+			t1.PBLProvinceName
+		 from PBLProvince t1
+		 where 1=1
+		order by PBLProvinceID
+	</select>
+	
+	<resultMap type="TwoMenu" id="menuResultMap">
+		<id column="PBLCityID" property="PBLCityID"/>
+		<result column="PBLProvinceID" property="PBLProvinceID"/>
+		<result column="PBLCityName" property="PBLCityName"/>
+		<result column="PBANetName" property="PBANetName"/>
+		<result column="PBANetURL" property="PBANetURL"/>
+	</resultMap>
+	<select id="listSubMenuByParentId" parameterType="String" resultMap="menuResultMap">
+		select
+			  t1.PBLCityID,
+			  t1.PBLProvinceID,
+			  t1.PBLCityName,
+			  t2.PBANetName,
+			  t2.PBANetURL
+		from 
+			PBLCity t1
+		LEFT JOIN PBANet t2 ON t2.PBLCityID = t1.PBLCityID
+		where PBLProvinceID = #{parentId} order by PBLCityID 
+	</select>
+	<!-- <select id="listAllParentMenu" resultMap="menuResultMap">
+		select * from SYS_MENU 
+		where PARENT_ID = '0' order by MENU_ORDER 
+	</select> -->
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			PBLProvince
+		where 1=1
+	</select>
+	
+	<!-- 新增省份信息 -->
+	<select id="saveBank" parameterType="pd" resultType="pd">
+		insert into PBLProvince(
+			PBLProvinceName
+		)values(
+			#{PBLProvinceName}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 新增城市信息 -->
+	<select id="savePBLCity" parameterType="pd" resultType="pd">
+		insert into PBLCity(
+			PBLProvinceID,
+			PBLCityName
+		)values(
+			#{PBLProvinceID},
+			#{PBLCityName}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 新增党建网链接（url）信息 -->
+	<select id="savePBANet" parameterType="pd" resultType="pd">
+		insert into PBANet(
+			PBLCityID,
+			PBANetName,
+			PBANetURL
+		)values(
+			#{PBLCityID},
+			#{PBANetName},
+			#{PBANetURL}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 更新顶级省份名 -->
+	<update id="updatePBLProvince" parameterType="pd">
+		update PBLProvince
+			set 
+				PBLProvinceName =#{PBLProvinceName}
+			where PBLProvinceID = #{PBLProvinceID}
+	</update>
+	
+	<!-- 更新二级城市名 -->
+	<update id="updatePBLCity" parameterType="pd">
+		update PBLCity
+			set 
+				PBLCityName =#{PBLCityName}
+			where PBLCityID = #{PBLCityID}
+	</update>
+	
+	<!-- 更新党建网名 -->
+	<update id="updatePBANet" parameterType="pd">
+		update PBANet
+			set 
+				PBANetName =#{PBANetName},
+				PBANetURL =#{PBANetURL}
+			where PBLCityID = #{PBLCityID}
+	</update>
+	
+	<!-- 根据顶级省份id查询一条信息 -->
+	<select id="getDataByID" parameterType="pd" resultType="pd">
+		select
+			PBLProvinceID,
+			PBLProvinceName
+		from 
+			PBLProvince
+		where 
+			PBLProvinceID = #{PBLProvinceID}
+	</select>
+	
+	<!-- 根据城市id查询党建网一条信息 -->
+	<select id="getDataByPBLCityID" parameterType="pd" resultType="pd">
+		select
+			t1.PBLCityID,
+			t1.PBLProvinceID,
+			t1.PBLCityName,
+			t2.PBANetName,
+			t2.PBANetURL
+		from 
+			PBLCity t1
+		LEFT JOIN PBANet t2 ON t2.PBLCityID =t1.PBLCityID
+		where 
+			t1.PBLCityID = #{PBLCityID}
+	</select>
+	
+	<!-- 根据顶级省份id查询是否存在二级信息 -->
+	<select id="getPBLCityIDCount" parameterType="pd" resultType="pd">
+		SELECT
+			PBLCityID,
+			PBLProvinceID,
+			PBLCityName
+		FROM
+			PBLCity
+		where PBLProvinceID=#{PBLProvinceID}
+	</select>
+	
+	<!-- 根据顶级省份id删除一条信息 -->
+	<delete id="deleteMenuById" parameterType="String">
+		delete from PBLProvince 
+		where PBLProvinceID=#{PBLProvinceID} 
+	</delete>
+	
+	<!-- 执行删除城市名信息 -->
+	<delete id="deletePBLCity" parameterType="pd">
+		delete from PBLCity 
+		where 
+		<if test="PBLProvinceID!=null and PBLProvinceID!=''">
+			PBLProvinceID =#{PBLProvinceID}
+		</if>
+	</delete>
+	
+	<!-- 执行删除城市名信息 -->
+	<delete id="deletePBLCityzimenu" parameterType="pd">
+		delete from PBLCity 
+		where 
+		<if test="PBLCityID!=null and PBLCityID!=''">
+			PBLCityID =#{PBLCityID}
+		</if>
+	</delete>
+		
+	<!-- 执行删除党建网、url信息 -->
+	<delete id="deletePBANet" parameterType="pd">
+		delete 
+		from PBANet
+		where PBLCityID =#{PBLCityID}
+	</delete>
+</mapper>

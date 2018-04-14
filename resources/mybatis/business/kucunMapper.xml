@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kucunMapper">
+		
+		
+	<select id="kucunListPage" parameterType="Map" resultType="pd" useCache="false">
+			select 
+				t1.PhotoID,
+				t1.PhotoName,
+				t1.FileID,
+				t1.SectionID,
+				t1.PhotoPath,
+				t1.PhotoDescription,
+				t1.PhotoURL,
+				t1.PhotoSign,
+				t1.PhotoTypeID,
+			  	t2.FileName
+			 from
+			 	(
+					SELECT
+						*, ROW_NUMBER () OVER (ORDER BY a.PhotoID DESC) AS RowNumber
+					FROM
+						Photo AS a
+					WHERE
+						1 = 1
+				) AS t1
+			 LEFT JOIN [dbo].[File] t2  ON t1.FileID = t2.FileID
+			 WHERE
+				RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}  
+			 <if test="searchName!=null and searchName!=''">
+				and( t2.FileName LIKE '%${searchName}%')
+			 </if>
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			Photo t1
+			LEFT JOIN [dbo].[File] t2  ON t1.FileID = t2.FileID
+		where 1=1
+	</select>
+	
+	<insert id="saveKucun" parameterType="pd">
+			insert into tb_kucun(
+				  	  kucun_id,
+					  spmc_id,
+					  jinhuo_id,
+					  weight
+				)values(
+					#{kucun_id},
+					#{spmc_id},
+					#{jinhuo_id},
+					#{weight}
+				)
+	</insert>
+	
+	<!-- 查询该种商品是否存在库存 -->
+	<select id="selectkucunExist" parameterType="pd" resultType="pd">
+			select   
+					 kucun_id,
+					  spmc_id,
+					  jinhuo_id,
+					  weight
+			from tb_kucun 
+			where spmc_id = #{spmc_id}
+	</select>
+	
+	
+	
+	<update id="updatekucun" parameterType="pd">
+		update tb_kucun 
+		set
+			  weight =#{weight}
+			  
+		where 
+			  spmc_id = #{spmc_id}
+	</update>
+	
+	<!-- 根据货品id修改库存 -->
+	<update id="updatekucunByExist" parameterType="pd">
+		update tb_kucun 
+		set
+			  weight =#{weight}
+			  
+		where 
+			  spmc_id = #{spmc_id}
+			
+	</update>
+	
+	<select id="getKucunByspmcId" parameterType="pd" resultType="pd">
+			select   
+					  kucun_id,
+					  spmc_id,
+					  jinhuo_id,
+					  weight
+			from tb_kucun 
+			where spmc_id = #{spmc_id}
+	</select>
+	
+		
+</mapper>

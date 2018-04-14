@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="goodsMapper">
+		
+	<!-- 评优列表 -->	 
+	<select id="goodsListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.ATID,
+			t1.AVTID,
+			t1.ATName,
+			t1.ATVotNum,
+			t1.ATBegTime,
+			t1.ATEndTime,
+			t1.ATOptionNum,
+			t1.ATPhoto,
+			t1.ATIntroduction,
+			t2.AVTName
+			<!-- ,
+			t3.ATOID,
+			t3.ATOName,
+			t3.ATOVotNum,
+			t3.ATOVotType,
+			t3.ATOPhoto,
+			t3.ATOIntroduction -->
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.Hot DESC) AS RowNumber
+				FROM
+					AppraisingTopics AS a
+				WHERE
+					1 = 1
+			) AS t1
+		LEFT JOIN AppraisingVotingType t2 ON t2.AVTID = t1.AVTID
+		<!-- LEFT JOIN AppraisingTopicsOption t3 ON t1.ATID = t3.ATID -->
+		WHERE
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.ATName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			AppraisingTopics
+		where 1=1
+	</select>
+	
+	<!-- 评优投票类型表 -->
+	<select id="AppraisingVotingTypeList" parameterType="pd" resultType="pd" useCache="false">
+		select 
+			AVTID,
+			AVTName
+		 from 
+		 	AppraisingVotingType
+		where 1=1
+	</select>
+	
+	<!-- 新增评优投票题目表 -->
+	<select id="saveGoods" resultType="pd">
+			insert into AppraisingTopics(
+				AVTID,
+				ATName,
+				ATBegTime,
+				ATEndTime,
+				ATOptionNum,
+				ATPhoto,
+				ATIntroduction,
+				Hot
+			)values(
+				#{AVTID},
+				#{ATName},
+				#{ATBegTime},
+				#{ATEndTime},
+				#{ATOptionNum},
+				#{ATPhoto},
+				#{ATIntroduction},
+				#{Hot}
+			)
+			;select @@IDENTITY
+	</select>
+	
+	<!-- 新增评优投票题目中的选项表-->
+	<select id="saveAppraising" resultType="pd">
+			insert into AppraisingTopicsOption(
+				ATID,
+				ATOName,
+				ATOVotType
+			)values(
+				#{ATID},
+				#{ATOName},
+				#{ATOVotType}
+			;select @@IDENTITY
+	</select>
+	
+	<!-- 执行题目修改 -->
+	<update id="updateGoods" parameterType="pd">
+		update AppraisingTopics
+			set 
+				AVTID = #{AVTID},
+				ATName = #{ATName},
+				ATBegTime = #{ATBegTime},
+				ATEndTime = #{ATEndTime},
+				ATOptionNum = #{ATOptionNum},
+				ATPhoto = #{ATPhoto},
+				ATIntroduction = #{ATIntroduction},
+				Hot = #{Hot}
+		where ATID = #{ATID}
+	</update>
+	
+	<!-- 执行选项修改 -->
+	<update id="updateAppraisingTopicsOption" parameterType="pd">
+		update AppraisingTopicsOption
+			set 
+				ATOName = #{ATOName},
+				ATOVotType = #{ATOVotType}
+		where ATID = #{ATID}
+	</update>
+	
+	<!-- 查询题目一条信息 -->
+	<select id="getDataByID" parameterType="pd" resultType="pd">
+			select 
+				t1.ATID,
+				t1.AVTID,
+				t1.ATName,
+				t1.ATBegTime,
+				t1.ATEndTime,
+				t1.ATOptionNum,
+				t1.ATPhoto,
+				t1.ATIntroduction,
+				t1.Hot
+			FROM
+				AppraisingTopics t1
+		    where t1.ATID =#{ATID}
+	</select>
+	
+	<!-- 删除一条信息 -->
+	<delete id="deleteGoods" parameterType="pd">
+		delete from AppraisingTopics where ATID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+		
+</mapper>

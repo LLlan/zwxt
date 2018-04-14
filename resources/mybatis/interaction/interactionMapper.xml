@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="interactionMapper">
+							
+	<!-- 课程系统分页列表 -->	 
+	<select id="InteractionListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.InteractionID,
+			t1.InteractionName,
+			t1.InteractionPhotoUrl,
+			ISNULL(t1.InteractionClick, 0) InteractionClick,
+			ISNULL(t1.InteractionComment, 0) InteractionComment,
+			ISNULL(t1.InteractionLike, 0) InteractionLike,
+			t1.InteractionTime,
+			t1.InteractionContent,
+			t1.PMID,
+			t2.PMName,
+			t3.IContentPhotoUrl
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.InteractionID DESC) AS RowNumber
+				FROM
+					Interaction AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 ON t1.PMID = t2.PMID
+			LEFT JOIN IContentPhoto t3 ON t1.InteractionID = t3.InteractionID
+		WHERE
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.InteractionName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCountInteraction" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			Interaction
+		where 1=1
+	</select>
+
+	<!-- 执行新增 -->
+	<select id="saveliveBroadcast" resultType="pd">
+		INSERT INTO LiveBroadcast(
+			LiveBroadcastName,
+			LiveBroadcastPhotoUrl,
+			LiveBroadcastType,
+			LiveBroadcastContent,
+			LiveBroadcastVideoUrl,
+			LiveBroadcastBeginTime,
+			LiveBroadcastEndTime,
+			LiveBroadcastLength,
+			LiveBroadcastTime
+		)VALUES(
+			#{LiveBroadcastName},
+			#{LiveBroadcastPhotoUrl},
+			#{LiveBroadcastType},
+			#{LiveBroadcastContent},
+			#{LiveBroadcastVideoUrl},
+			#{LiveBroadcastBeginTime},
+			#{LiveBroadcastEndTime},
+			CONVERT(varchar(100), #{LiveBroadcastLength}, 0),
+			#{LiveBroadcastTime}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByIDinteraction" parameterType="pd" resultType="pd">
+			select 
+				t1.InteractionID,
+				t1.InteractionName,
+				t1.InteractionPhotoUrl,
+				ISNULL(t1.InteractionClick, 0) InteractionClick,
+				ISNULL(t1.InteractionComment, 0) InteractionComment,
+				ISNULL(t1.InteractionLike, 0) InteractionLike,
+				t1.InteractionTime,
+				t1.InteractionContent,
+				t1.PMID
+		     from 
+		     	Interaction t1
+		     where t1.InteractionID = #{InteractionID}
+	</select>
+	
+	<!-- 根据id执行修改一条信息 -->
+	<update id="updateInteraction" parameterType="pd">
+		update 
+			Interaction
+		set 
+			InteractionName = #{InteractionName},
+			InteractionPhotoUrl = #{InteractionPhotoUrl},
+			InteractionContent = #{InteractionContent}
+		where 
+			InteractionID = #{InteractionID}
+	</update>
+	
+	<!-- 执行互动删除-->
+	<delete id="deleteInteraction" parameterType="pd">
+		delete 
+		from Interaction
+		where 
+		InteractionID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<!-- 执行评价删除-->
+	<delete id="deleteInteractionEvaluates" parameterType="pd">
+		delete 
+		from InteractionEvaluate
+		where 
+		InteractionID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<!-- 执行点赞删除-->
+	<delete id="deleteInteractionPraises" parameterType="pd">
+		delete 
+		from InteractionPraise
+		where 
+		InteractionID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	
+			<!-- 评价互动部分  -->
+					
+	<!-- 评价互动分页列表 -->	 
+	<select id="InteractionEvaluateListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.IFID,
+			t1.IFTime,
+			t1.IFContent,
+			t1.PMID,
+			t1.InteractionID,
+			t2.PMName,
+			t3.InteractionName
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.IFID DESC) AS RowNumber
+				FROM
+					InteractionEvaluate AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN Interaction t3 ON t1.InteractionID = t3.InteractionID
+		WHERE
+			t1.InteractionID = #{InteractionID} AND
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t2.PMName LIKE '%${searchName}%' OR t3.InteractionName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 评价互动分页总数 -->
+	<select id="getCountInteractionEvaluate" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			InteractionEvaluate
+		where 1=1 AND InteractionID = #{InteractionID}
+	</select>
+	
+	<!-- 根据主键评价互动ID获取对象信息-->
+	<select id="getDataByIDInteractionEvaluate" parameterType="pd" resultType="pd">
+			select 
+				t1.IFID,
+				t1.IFTime,
+				t1.IFContent,
+				t1.PMID,
+				t1.InteractionID,
+				t2.PMName,
+				t3.InteractionName
+		     from 
+		     	InteractionEvaluate t1
+		    	 LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+				 LEFT JOIN Interaction t3 ON t1.InteractionID = t3.InteractionID
+		     where t1.InteractionID = #{InteractionID}
+	</select>
+	
+	<!-- 执行评价删除-->
+	<delete id="deleteInteractionEvaluate" parameterType="pd">
+		delete 
+		from InteractionEvaluate
+		where 
+		IFID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+			<!-- 点赞互动部分  -->
+					
+	<!-- 点赞分页列表 -->	 
+	<select id="InteractionPraiseListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.IPID,
+			t1.IPTime,
+			t1.PMID,
+			t1.InteractionID,
+			t2.PMName,
+			t3.InteractionName
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.IPID DESC) AS RowNumber
+				FROM
+					InteractionPraise AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN Interaction t3 ON t1.InteractionID = t3.InteractionID
+		WHERE
+			t1.InteractionID = #{InteractionID} AND
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t2.PMName LIKE '%${searchName}%' OR t3.InteractionName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 点赞分页总数 -->
+	<select id="getCountInteractionPraise" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			InteractionPraise
+		where 1=1 AND InteractionID = #{InteractionID}
+	</select>
+	
+	<!-- 执行点赞删除-->
+	<delete id="deleteInteractionPraise" parameterType="pd">
+		delete 
+		from InteractionPraise
+		where 
+		IPID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+</mapper>

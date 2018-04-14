@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="newsModuleMapper">
+
+	<!--  
+		获取板块所有的信息列表
+	-->
+	<select id="getListPage" parameterType="Map" resultType="pd">
+	<!-- SELECT * from(
+			SELECT 
+				top ${pageSize}
+			    FileTypeID,
+				FileTypeName,
+				FileTypePathID,
+				FileTypeHot
+			FROM FileType
+			where 
+				FileTypePathID =0 AND
+			 	FileTypeID not in (select top ${pagestart} FileTypeID from FileType)
+		 	)t ORDER BY t.FileTypeHot desc -->
+		 	SELECT
+				*
+			FROM
+				(
+					SELECT
+						*, ROW_NUMBER () OVER (ORDER BY a.FileTypeHot DESC) AS RowNumber
+					FROM
+						FileType AS a WHERE FileTypePathID =0
+				) AS b
+			WHERE
+				RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+			<!-- SELECT
+			    TOP ${pageSize} *
+			FROM
+			    (
+			        SELECT
+			            *
+			        FROM
+			            FileType
+			        WHERE
+			            FileType.FileTypePathID =0
+			    ) AS a
+			LEFT JOIN FileType ON FileType.FileTypeID = a.FileTypeID
+			ORDER BY a.FileTypeHot DESC -->
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			Section
+		where 1=1
+	</select>
+	
+	<!--  
+		获取所有的文件类型信息
+	-->
+	<select id="getFileTypeList" parameterType="pd" resultType="pd">
+		SELECT 
+			FileTypeID,
+			FileTypeName
+		FROM FileType
+	</select>
+	
+	<!--  
+		获取所有的图片类型信息
+	-->
+	<select id="getPhotoTypeList" parameterType="pd" resultType="pd">
+		SELECT 
+			PhotoTypeID,
+			PhotoTypeName
+		FROM PhotoType
+	</select>
+	
+	<!--  
+		获取多图片列表
+	-->
+	<select id="getPhotoList" parameterType="pd" resultType="pd">
+		SELECT 
+			t1.PhotoID,
+			t1.PhotoName,
+			t1.FileID,
+			t1.SectionID,
+			t1.PhotoPath,
+			t1.PhotoDescription,
+			t1.PhotoURL,
+			t1.PhotoSign,
+			t1.PhotoTypeID
+		FROM 
+			Photo t1
+		WHERE t1.FileID = #{FileID}
+	</select>
+	
+	<!--  
+		获取所有父级板块的信息
+	-->
+	<select id="getAllListParent" parameterType="pd" resultType="pd">
+		SELECT 
+			FileTypeID,
+			FileTypeName,
+			FileTypePathID,
+			FileTypeHot
+		FROM FileType
+			where FileTypePathID=0 
+	</select>
+	<!--  
+		添加板块信息
+	-->
+	<insert id="insertFileType" parameterType="pd" useGeneratedKeys="true" keyProperty="FileTypeID">
+		INSERT INTO FileType(
+			FileTypeName,
+			FileTypePathID,
+			FileTypeHot
+		)VALUES(
+			#{FileTypeName},
+			#{FileTypePathID},
+			#{FileTypeHot}
+		)
+	</insert>
+	<!-- 设置热度 -->
+	<update id="SetFileTypeHot" parameterType="pd">
+		update FileType
+		set
+			FileTypeHot='0'
+		where 
+			FileTypeHot=#{FileTypeHot}
+	</update>
+	<!--  
+		根据主键ID获取对象信息
+	-->
+	<select id="getDateById" parameterType="pd" resultType="pd">
+		SELECT
+			*
+		FROM
+			FileType 
+		<where>
+			FileTypeID=#{FileTypeID}
+		</where>
+	</select>
+	
+	<!--  
+		修改指定信息
+	-->
+	<update id="updateFileType" parameterType="pd">
+		update FileType
+		set
+			FileTypeName=#{FileTypeName},
+			FileTypePathID=#{FileTypePathID},
+			FileTypeHot=#{FileTypeHot}
+		where 
+			FileTypeID=#{FileTypeID}
+	</update>
+	
+	<!--  
+		删除操作
+	-->
+	<delete id="deleteFileType" parameterType="pd">
+		delete 
+		from FileType
+		where FileTypeID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+		
+		<!-- 连同下级也一并删除 -->
+		
+		OR FileTypePathID IN
+		
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<!--  
+		获取指定id集合的数据
+	-->
+	<select id="getListByIds" parameterType="pd" resultType="pd">
+		select 
+			icon_path
+		from sys_news_module
+		where news_module_id in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+	
+	<!-- 删除图片路径-->
+	<update id="deleteImgPath" parameterType="pd">
+		update sys_news_module
+		set 
+			icon_path = ''
+		where 
+			news_module_id=#{news_module_id}
+	</update>
+	
+	<!--  
+		获取指定条件下的所有主图信息
+	-->
+	<select id="getListByCondition" parameterType="pd" resultType="pd">
+		select 
+			icon_path,
+			news_module_name
+		from sys_news_module
+		where 
+			status=#{status}
+	</select>
+	
+	<!--  
+		获取指定条件下的所有主图信息
+	-->
+	<select id="getChildList" parameterType="pd" resultType="pd">
+		select 
+			*
+		from FileType
+		where 
+			FileTypePathID=#{FileTypePathID}
+	</select>
+	
+	
+	<delete id="delBtn" parameterType="pd">
+	
+        delete from FileType where FileTypeID=#{FileTypeID}
+        
+      <!--  并且删除其下级 -->
+      
+        or FileTypePathID=#{FileTypeID}
+        
+    </delete>
+	
+	<select id="getListAll" parameterType="pd" resultType="pd">
+		SELECT 
+			SectionID,
+			SectionFatherID,
+			SectionName
+		FROM Section
+		<!-- <where>
+			<if test="pd.searchName!=null and pd.searchName!=''">
+		 		tg.labelName LIKE CONCAT(CONCAT('%', #{pd.searchName}),'%')
+		 		or tg.type LIKE CONCAT(CONCAT('%', #{pd.searchName}),'%')
+		 	</if>
+		</where>  -->
+	</select>
+	
+</mapper>

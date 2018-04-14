@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="interFileMapper">
+
+	<!-- n内部资料列表 -->	 
+	<select id="interFileListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.InterFileID,
+			t1.InterFileName,
+			t1.InterFileFuName,
+			t1.InterFileTime,
+			t1.InterFileIntroduction
+			<!-- t2.ItemName,
+			ISNULL(t2.ItemNum, 0)ItemNum,
+			t2.ItemID -->
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.InterFileID DESC) AS RowNumber
+				FROM
+					InterFile AS a
+				WHERE
+					1 = 1
+			) AS t1
+			<!-- LEFT JOIN  InterFileItem t2 ON t1.InterFileID = t2.InterFileID -->
+		WHERE
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( 
+					t1.InterFileName LIKE '%${searchName}%'
+					<!-- OR
+					t2.ItemName LIKE '%${searchName}%' -->
+				)
+		</if>
+	</select>
+	
+	<!-- n内部资料列表 -->	 
+	<select id="InterFileAllList" parameterType="pd" resultType="pd">
+		select
+			t1.InterFileID,
+			t1.InterFileName,
+			t1.InterFileFuName,
+			t1.InterFileTime,
+			t1.InterFileIntroduction,
+			t2.ItemName
+		FROM
+			InterFile t1
+		LEFT JOIN  InterFileItem t2 ON t1.InterFileID = t2.InterFileID
+		WHERE
+			1=1
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			InterFile t1
+		where 1=1
+		<if test="searchName!=null and searchName!=''">
+			AND( 
+					t1.InterFileName LIKE '%${searchName}%'
+					<!-- OR
+					t2.ItemName LIKE '%${searchName}%' -->
+				)
+		</if>
+	</select>
+	
+	<!--  
+		添加内部资料
+	-->
+	<select id="insertFilesave" resultType="pd">
+		INSERT INTO InterFile(
+			InterFileName,
+			InterFileFuName,
+			InterFileTime,
+			InterFileIntroduction
+		)VALUES(
+			#{InterFileName},
+			#{InterFileFuName},
+			#{InterFileTime},
+			#{InterFileIntroduction}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByID" parameterType="pd" resultType="pd">
+			select 
+				t1.InterFileID,
+				t1.InterFileName,
+				t1.InterFileFuName,
+				t1.InterFileTime,
+				t1.InterFileIntroduction
+				<!-- t2.ItemID,
+				t2.ItemName,
+				t2.ItemPath -->
+		     from 
+		     	InterFile t1
+		     <!-- LEFT JOIN  InterFileItem t2 ON t1.InterFileID = t2.InterFileID -->
+		     where t1.InterFileID = #{InterFileID}
+	</select>
+	
+			<!-- 根据id修改一条信息 -->
+	<update id="updateInterFile" parameterType="pd">
+		update 
+			InterFile
+		set 
+			InterFileName = #{InterFileName},
+			InterFileFuName = #{InterFileFuName},
+			InterFileIntroduction=#{InterFileIntroduction}
+		where 
+			InterFileID = #{InterFileID}
+	</update>
+	
+	<!-- 执行删除内部资料 -->
+	<delete id="deleteFile" parameterType="pd">
+		delete 
+		from InterFile
+		where InterFileID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	
+	
+	
+	
+							<!-- 上传内部资料部分 -->
+										
+	<!-- 上传内部资料列表 -->	 
+	<select id="InterFileItemListPage" parameterType="Map" resultType="pd" useCache="false">
+	SELECT * FROM(
+		select
+			t1.ItemID,
+			t1.ItemName,
+			t1.ItemPath,
+			ISNULL(t1.ItemNum, 0)ItemNum,
+			t1.InterFileID,
+			t2.InterFileName,
+			ROW_NUMBER () OVER (ORDER BY t1.ItemID DESC) AS RowNumber
+		from
+			(
+				SELECT
+					*
+				FROM
+					InterFileItem AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN  InterFile t2 ON t1.InterFileID = t2.InterFileID
+		<where>
+			t1.InterFileID =#{InterFileID}
+			<if test="searchName!=null and searchName!=''">
+				AND( t1.ItemName LIKE '%${searchName}%' OR t2.InterFileName LIKE '%${searchName}%')
+			</if>
+		</where>
+	)tmp where RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}
+	</select>
+	
+	
+	<!-- 上传内部资料分页总数 -->
+	<select id="getInterFileItemCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			InterFileItem t1 
+		LEFT JOIN  InterFile t2 ON t1.InterFileID = t2.InterFileID
+		where 1=1  AND t1.InterFileID =#{InterFileID}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.ItemName LIKE '%${searchName}%' OR t2.InterFileName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	
+	<!--  
+		添加内部资料下载信息
+	-->
+	<select id="InterFileItemsave" resultType="pd">
+		INSERT INTO InterFileItem(
+			ItemName,
+			ItemPath,
+			InterFileID
+		)VALUES(
+			#{ItemName},
+			#{ItemPath},
+			#{InterFileID}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByIDitem" parameterType="pd" resultType="pd">
+			select 
+				t1.ItemID,
+				t1.ItemName,
+				t1.ItemPath,
+				t2.InterFileID,
+				t2.InterFileName,
+				t2.InterFileFuName,
+				t2.InterFileTime,
+				t2.InterFileIntroduction
+		     from 
+		     	InterFileItem t1
+		     LEFT JOIN  InterFile t2 ON t1.InterFileID = t2.InterFileID
+		     where t1.ItemID = #{ItemID}
+	</select>
+	
+	<!-- 根据id修改一条信息 -->
+	<update id="updateInterFileItem" parameterType="pd">
+		update 
+			InterFileItem
+		set 
+			ItemName = #{ItemName},
+			ItemPath = #{ItemPath},
+			InterFileID = #{InterFileID}
+		where 
+			ItemID = #{ItemID}
+	</update>
+	
+	<!-- 执行删除内部资料下载 -->
+	<delete id="deleteFiless" parameterType="pd">
+		delete 
+		from InterFileItem
+		where 
+		InterFileID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<!-- 执行删除内部资料下载 -->
+	<delete id="deleteFiles" parameterType="pd">
+		delete 
+		from InterFileItem
+		where 
+		ItemID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+
+</mapper>

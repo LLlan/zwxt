@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kehuMapper">
+	<!-- 分页列表 -->
+	<select id="kehuListPage" parameterType="Map" resultType="pd" useCache="false">
+				SELECT
+					t1.PMID,
+					t1.POID,
+					t1.PMMobile,
+					t1.PMName,
+					t1.PMRegName,
+					t1.PMPassword,
+					t1.PMLoginNum,
+					t1.PMSex,
+					t1.PMBirthday,
+					t1.PMNation,
+					t1.PMPost,
+					t1.PMOrganization,
+					t1.PMAddress,
+					t1.PMPhoto,
+					t1.PMIntroduction,
+					t2.POName
+				FROM
+					(
+						SELECT
+							*, ROW_NUMBER () OVER (ORDER BY a.PMID DESC) AS RowNumber
+						FROM
+							PartyMember AS a
+						WHERE
+							1 = 1
+					) AS t1
+				LEFT JOIN PartyOrganization t2 ON t2.POID = t1.POID
+				WHERE
+					RowNumber BETWEEN ${pagestart}*${pageSize}+1
+					AND ${pagestart}*${pageSize}+${pageSize}
+				 <if test="searchName!=null and searchName!=''">
+					and
+					(
+						 t1.PMRegName LIKE '%${searchName}%'
+						 OR
+						 t1.PMMobile  LIKE '%${searchName}%'
+						 OR
+						 t1.PMName  LIKE '%${searchName}%'
+					)
+				</if>
+	</select> 
+	
+	<!-- 分页总数 -->
+	<select id="kehuCount" parameterType="Map" resultType="pd">
+			select
+				count(*) AS counts
+			 from
+			 	PartyMember
+			WHERE 1=1
+			 <if test="searchName!=null and searchName!=''">
+				AND PMRegName LIKE '%${searchName}%'
+			</if>
+	</select> 
+	
+	<!-- 新增一条信息 -->
+	<select id="saveKehu" resultType="pd">
+			insert into [dbo].[PartyMember](
+				POID,
+				PMMobile,
+				PMName,
+				PMRegName,
+				PMPassword,
+				<!-- PMLoginNum, -->
+				PMSex,
+				PMBirthday,
+				PMNation,
+				PMPost,
+				PMOrganization,
+				PMAddress,
+				PMPhoto,
+				PMIntroduction
+			)values(
+				#{POID},
+				#{PMMobile},
+				#{PMName},
+				#{PMRegName},
+				#{PMPassword},
+				<!-- #{PMLoginNum}, -->
+				#{PMSex},
+				#{PMBirthday},
+				#{PMNation},
+				#{PMPost},
+				#{PMOrganization},
+				#{PMAddress},
+				#{PMPhoto},
+				#{PMIntroduction}
+			)
+			;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id修改一条信息 -->
+	<update id="updateKehu" parameterType="pd">
+		update 
+			PartyMember
+		set 
+			POID = #{POID},
+			PMMobile = #{PMMobile},
+			PMName=#{PMName},
+			PMRegName=#{PMRegName},
+			PMPassword=#{PMPassword},
+			PMSex=#{PMSex},
+			PMBirthday=#{PMBirthday},
+			PMNation=#{PMNation},
+			PMPost=#{PMPost},
+			PMOrganization=#{PMOrganization},
+			PMAddress=#{PMAddress},
+			PMPhoto=#{PMPhoto},
+			PMIntroduction=#{PMIntroduction}
+		where 
+			PMID = #{PMID}
+	</update>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByID" parameterType="pd" resultType="pd">
+			select 
+					PMID,
+					POID,
+					PMMobile,
+					PMName,
+					PMRegName,
+					PMPassword,
+					PMLoginNum,
+					PMSex,
+					PMBirthday,
+					PMNation,
+					PMPost,
+					PMOrganization,
+					PMAddress,
+					PMPhoto,
+					PMIntroduction
+		     from PartyMember 
+		     where PMID = #{PMID}
+	</select>
+	<!-- 执行删除 -->
+	<delete id="deleteFile" parameterType="pd">
+		delete 
+		from PartyMember
+		where PMID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+</mapper>

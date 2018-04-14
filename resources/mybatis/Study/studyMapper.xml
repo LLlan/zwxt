@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://www.mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="studyMapper">
+	<!-- 课程系统分页列表 -->	 
+	<select id="StudyListPage" parameterType="Map" resultType="pd" useCache="false">
+		SELECT * from (
+		SELECT
+			t1.CurriculumSeriesID,
+			t1.CurriculumSeriesName,
+			t1.CurriculumSeriesPhotoUrl,
+			t1.CurriculumSeriesPosition,
+			ISNULL(t1.CurriculumSeriesLike, 0) CurriculumSeriesLike,
+			t1.CurriculumSeriesTime,
+			ROW_NUMBER () OVER (ORDER BY t1.Hot DESC) AS RowNumber
+		FROM
+			(
+				SELECT
+					*
+				FROM
+					CurriculumSeries AS a
+				WHERE
+					1 = 1
+			) AS t1
+		<where>
+			<if test="searchName!=null and searchName!='' and searchNames!=null and searchNames!='' ">
+				( t1.CurriculumSeriesName LIKE '%${searchName}%' OR t1.CurriculumSeriesPosition LIKE '%${searchNames}%')
+			</if>
+			<if test="searchName!=null and searchName!=''">
+			  AND ( t1.CurriculumSeriesName LIKE '%${searchName}%') 
+			</if>
+			<if test="searchNames!=null and searchNames!=''">
+			  AND (t1.CurriculumSeriesPosition LIKE '%${searchNames}%')
+			</if>
+		</where>
+		) as tmp where RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}
+		
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCount" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			CurriculumSeries t1
+		where 1=1
+		<if test="searchName!=null and searchName!='' and searchNames!=null and searchNames!='' ">
+			AND( t1.CurriculumSeriesName LIKE '%${searchName}%' OR t1.CurriculumSeriesPosition LIKE '%${searchNames}%')
+		</if>
+		<if test="searchName!=null and searchName!=''">
+		   AND( t1.CurriculumSeriesName LIKE '%${searchName}%') 
+		</if>
+		<if test="searchNames!=null and searchNames!=''">
+		  AND (t1.CurriculumSeriesPosition LIKE '%${searchNames}%')
+		</if>
+	</select>
+	
+	<!-- 课程系统分页列表 -->	 
+	<select id="CurriculumSeriesALlList" parameterType="pd" resultType="pd">
+		select
+			t1.CurriculumSeriesID,
+			t1.CurriculumSeriesName,
+			t1.CurriculumSeriesPhotoUrl,
+			t1.CurriculumSeriesPosition,
+			ISNULL(t1.CurriculumSeriesLike, 0) CurriculumSeriesLike,
+			t1.CurriculumSeriesTime
+		FROM
+			CurriculumSeries t1
+		WHERE
+			1=1
+	</select>
+	
+	<!-- 课程系统执行新增 -->
+	<select id="saveCurriculumSeries" resultType="pd">
+		INSERT INTO CurriculumSeries(
+			CurriculumSeriesName,
+			CurriculumSeriesPhotoUrl,
+			CurriculumSeriesPosition,
+			CurriculumSeriesLike,
+			CurriculumSeriesTime,
+			Hot
+		)VALUES(
+			#{CurriculumSeriesName},
+			#{CurriculumSeriesPhotoUrl},
+			#{CurriculumSeriesPosition},
+			#{CurriculumSeriesLike},
+			#{CurriculumSeriesTime},
+			#{Hot}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByIDCurriculumSeries" parameterType="pd" resultType="pd">
+			select 
+				t1.CurriculumSeriesID,
+				t1.CurriculumSeriesName,
+				t1.CurriculumSeriesPhotoUrl,
+				t1.CurriculumSeriesPosition,
+				t1.CurriculumSeriesLike,
+				t1.CurriculumSeriesTime
+		     from 
+		     	CurriculumSeries t1
+		     where t1.CurriculumSeriesID = #{CurriculumSeriesID}
+	</select>
+	
+	<!-- 根据id执行修改一条信息 -->
+	<update id="updateCurriculumSeries" parameterType="pd">
+		update 
+			CurriculumSeries
+		set 
+			CurriculumSeriesName = #{CurriculumSeriesName},
+			CurriculumSeriesPhotoUrl = #{CurriculumSeriesPhotoUrl},
+			CurriculumSeriesPosition = #{CurriculumSeriesPosition},
+			CurriculumSeriesLike = #{CurriculumSeriesLike},
+			Hot = #{Hot}
+			<!-- CurriculumSeriesTime = #{CurriculumSeriesTime} -->
+		where 
+			CurriculumSeriesID = #{CurriculumSeriesID}
+	</update>
+	
+	<!-- 执行删除-->
+	<delete id="deleteCurriculumSeries" parameterType="pd">
+		delete 
+		from CurriculumSeries
+		where 
+		CurriculumSeriesID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+							<!-- 课程管理 -->
+							
+	<!-- 课程系统分页列表 -->	 
+	<select id="CurriculumListPage" parameterType="Map" resultType="pd" useCache="false">
+	SELECT * from (
+		select
+			t1.CurriculumID,
+			t1.CurriculumName,
+			t1.CurriculumPhotoUrl,
+			t1.CurriculumType,
+			ISNULL(t1.CurriculumLike, 0) CurriculumLike,
+			t1.CurriculumTime,
+			t1.CurriculumContent,
+			t1.CurriculumVideoUrl,
+			ISNULL(t1.CurriculumScore, 0) CurriculumScore,
+			t1.CurriculumVideoLength,
+			t1.CurriculumSeriesID,
+			ROW_NUMBER () OVER (ORDER BY t1.CurriculumID DESC) AS RowNumber
+		from
+			(
+				SELECT
+					*
+				FROM
+					Curriculum AS a
+				WHERE
+					1 = 1
+			) AS t1
+		<where>
+			t1.CurriculumSeriesID = #{CurriculumSeriesID}
+			<if test="searchName!=null and searchName!=''">
+				AND( t1.CurriculumName LIKE '%${searchName}%' OR t1.CurriculumType  LIKE '%${searchName}%' )
+			</if>
+		</where>
+	) as tmp where RowNumber BETWEEN ${pagestart}*${pageSize}+1
+				AND ${pagestart}*${pageSize}+${pageSize}
+	</select>
+	
+	<!-- 分页总数 -->
+	<select id="getCountCurriculum" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			Curriculum t1
+		where 1=1 AND t1.CurriculumSeriesID = #{CurriculumSeriesID}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.CurriculumName LIKE '%${searchName}%' OR t1.CurriculumType  LIKE '%${searchName}%' )
+		</if>
+	</select>
+
+	<!-- 课程系统执行新增 -->
+	<select id="saveCurriculum" resultType="pd">
+		INSERT INTO Curriculum(
+			CurriculumName,
+			CurriculumPhotoUrl,
+			CurriculumType,
+			CurriculumTime,
+			CurriculumContent,
+			CurriculumVideoUrl,
+			CurriculumScore,
+			CurriculumVideoLength,
+			CurriculumSeriesID
+		)VALUES(
+			#{CurriculumName},
+			#{CurriculumPhotoUrl},
+			#{CurriculumType},
+			#{CurriculumTime},
+			#{CurriculumContent},
+			#{CurriculumVideoUrl},
+			#{CurriculumScore},
+			CONVERT(varchar(100), #{CurriculumVideoLength}, 0),
+			#{CurriculumSeriesID}
+		)
+		;select @@IDENTITY
+	</select>
+	
+	<!-- 根据id查出一条信息 -->
+	<select id="getDataByIDCurriculum" parameterType="pd" resultType="pd">
+			select 
+				t1.CurriculumID,
+				t1.CurriculumName,
+				t1.CurriculumPhotoUrl,
+				t1.CurriculumType,
+				ISNULL(t1.CurriculumLike, 0) CurriculumLike,
+				t1.CurriculumTime,
+				t1.CurriculumContent,
+				t1.CurriculumVideoUrl,
+				t1.CurriculumScore,
+				t1.CurriculumVideoLength,
+				t1.CurriculumSeriesID,
+				t2.CurriculumSeriesName
+		     from 
+		     	Curriculum t1
+		     LEFT JOIN CurriculumSeries t2 ON t1.CurriculumSeriesID = t2.CurriculumSeriesID
+		     where t1.CurriculumID = #{CurriculumID}
+	</select>
+	
+	<!-- 根据id执行修改一条信息 -->
+	<update id="updateCurriculum" parameterType="pd">
+		update 
+			Curriculum
+		set 
+			CurriculumName = #{CurriculumName},
+			CurriculumPhotoUrl = #{CurriculumPhotoUrl},
+			CurriculumType = #{CurriculumType},
+			<!-- CurriculumTime = #{CurriculumTime}, -->
+			CurriculumContent = #{CurriculumContent},
+			CurriculumVideoUrl = #{CurriculumVideoUrl},
+			CurriculumScore = #{CurriculumScore},
+			CurriculumVideoLength = CONVERT(varchar(100), #{CurriculumVideoLength}, 0),
+			CurriculumSeriesID = #{CurriculumSeriesID}
+		where 
+			CurriculumID = #{CurriculumID}
+	</update>
+	
+	<!-- 执行删除-->
+	<delete id="deleteCurriculum" parameterType="pd">
+		delete 
+		from Curriculum
+		where 
+		CurriculumID in
+		<foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+			<!-- 视频学习部分  -->
+					
+	<!-- 视频学习分页列表 -->	 
+	<select id="VideoLearnListPage" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.PMID,
+			t1.CurriculumID,
+			ISNULL(t1.VLCurScore, 0)VLCurScore,
+			t1.VLCurideoLength,
+			t1.VLContent,
+			t1.VLTime,
+			t2.PMName,
+			t3.CurriculumName,
+			ISNULL(t3.CurriculumScore, 0)CurriculumScore,
+			t4.CurriculumSeriesName
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.PMID DESC) AS RowNumber
+				FROM
+					VideoLearn AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN Curriculum t3 ON t1.CurriculumID = t3.CurriculumID
+			LEFT JOIN CurriculumSeries t4 ON t3.CurriculumSeriesID  = t4.CurriculumSeriesID
+		WHERE
+			t1.CurriculumID = #{CurriculumID} AND
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t2.PMName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 视频学习分页总数 -->
+	<select id="getCountVideoLearn" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			VideoLearn t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN Curriculum t3 ON t1.CurriculumID = t3.CurriculumID
+			LEFT JOIN CurriculumSeries t4 ON t3.CurriculumSeriesID  = t4.CurriculumSeriesID
+		where 1=1 AND t1.CurriculumID = #{CurriculumID}
+		<if test="searchName!=null and searchName!=''">
+			AND( t2.PMName LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 党员学习情况分页列表 -->	 
+	<select id="VideoLearnListPages" parameterType="Map" resultType="pd" useCache="false">
+		select
+			t1.PMID,
+			t1.CurriculumID,
+			ISNULL(t1.VLCurScore, 0)VLCurScore,
+			t1.VLCurideoLength,
+			t1.VLContent,
+			t1.VLTime,
+			t2.PMName,
+			t3.CurriculumName,
+			ISNULL(t3.CurriculumScore, 0)CurriculumScore,
+			t4.CurriculumSeriesName
+		from
+			(
+				SELECT
+					*, ROW_NUMBER () OVER (ORDER BY a.PMID DESC) AS RowNumber
+				FROM
+					VideoLearn AS a
+				WHERE
+					1 = 1
+			) AS t1
+			LEFT JOIN PartyMember t2 on t1.PMID = t2.PMID
+			LEFT JOIN Curriculum t3 ON t1.CurriculumID = t3.CurriculumID
+			LEFT JOIN CurriculumSeries t4 ON t3.CurriculumSeriesID  = t4.CurriculumSeriesID
+		WHERE
+			t1.PMID = #{PMID} AND
+			RowNumber BETWEEN ${pagestart}*${pageSize}+1
+			AND ${pagestart}*${pageSize}+${pageSize}
+		<if test="searchName!=null and searchName!=''">
+			AND( t1.VLContent LIKE '%${searchName}%')
+		</if>
+	</select>
+	
+	<!-- 视频学习分页总数 -->
+	<select id="getCountVideoLearns" parameterType="Map" resultType="pd">
+		SELECT
+			count(*) AS counts
+		FROM
+			VideoLearn
+		where 1=1 AND PMID = #{PMID}
+	</select>
+	
+</mapper>
